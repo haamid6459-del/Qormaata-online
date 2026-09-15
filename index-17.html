@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="om">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Qormaata Online</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0;color:#172033}
+header{background:#0b6b4f;color:white;padding:18px;text-align:center}
+main{max-width:900px;margin:auto;padding:16px}
+.card{background:white;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 10px #0001}
+button{border:0;border-radius:9px;padding:11px 15px;margin:5px;cursor:pointer;background:#0b6b4f;color:white}
+button.red{background:#b42318} button.gray{background:#667085}
+input,textarea,select{width:100%;box-sizing:border-box;padding:11px;margin:6px 0 12px;border:1px solid #ccd3df;border-radius:8px;font-size:15px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hidden{display:none}.q{border:1px solid #ddd;padding:14px;border-radius:10px;margin:12px 0}
+.option{display:block;background:#f6f8fa;padding:9px;margin:7px 0;border-radius:8px}
+.small{color:#667085;font-size:13px}.score{font-size:30px;font-weight:bold;text-align:center;padding:20px}
+@media(max-width:650px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><h1>📚 Qormaata Online</h1><div>Qopheessi • Qoodi • Qoramsiisi • Bu'aa Ilaali</div></header>
+<main>
+
+<div class="card" id="home">
+<h2>Filannoo</h2>
+<button onclick="show('teacher')">👨‍🏫 Barsiisaa</button>
+<button onclick="show('student')">👨‍🎓 Barataa</button>
+</div>
+
+<section id="teacher" class="hidden">
+<div class="card">
+<h2>👨‍🏫 Kutaa Barsiisaa</h2>
+<button onclick="teacherPage('questions')">Gaaffiiwwan</button>
+<button onclick="teacherPage('exams')">Qormaata</button>
+<button onclick="teacherPage('students')">Barattoota</button>
+<button onclick="teacherPage('results')">Bu'aa</button>
+<button class="gray" onclick="show('home')">← Deebi'i</button>
+</div>
+
+<div id="questions" class="card hidden">
+<h3>➕ Gaaffii Haaraa</h3>
+<label>Mata-duree</label>
+<select id="subject" onchange="loadTopics()"></select>
+<label>Qabiyyee</label><select id="topic"></select>
+<label>Gaaffii</label><textarea id="question" rows="3"></textarea>
+<div class="grid">
+<div><label>A</label><input id="a"></div><div><label>B</label><input id="b"></div>
+<div><label>C</label><input id="c"></div><div><label>D</label><input id="d"></div>
+</div>
+<label>Deebii sirrii</label><select id="correct"><option>A</option><option>B</option><option>C</option><option>D</option></select>
+<button onclick="saveQuestion()">💾 Olkaa'i</button>
+<button class="gray" onclick="clearForm()">Haquu/Reset</button>
+<div id="questionList"></div>
+</div>
+
+<div id="exams" class="card hidden">
+<h3>📝 Qormaata Uumi</h3>
+<label>Maqaa qormaataa</label><input id="examName" placeholder="Fkn: Qormaata Salaataa 1">
+<label>Mata-duree</label><select id="examSubject"></select>
+<label>Qabiyyee (filannoo)</label><select id="examTopic"></select>
+<label>Gaaffii meeqa?</label><input id="examCount" type="number" min="1" value="10">
+<button onclick="createExam()">Qormaata Uumi</button>
+<div id="examList"></div>
+</div>
+
+<div id="students" class="card hidden">
+<h3>👨‍🎓 Barattoota</h3>
+<input id="studentName" placeholder="Maqaa barataa">
+<button onclick="addStudent()">Barataa Galchi</button>
+<div id="studentList"></div>
+</div>
+
+<div id="results" class="card hidden">
+<h3>📊 Bu'aa Qormaataa</h3><div id="resultList"></div>
+</div>
+</section>
+
+<section id="student" class="hidden">
+<div class="card">
+<h2>👨‍🎓 Kutaa Barataa</h2>
+<label>Koodii qormaataa</label>
+<input id="examCode" placeholder="Fkn: ABC123">
+<label>Maqaa kee</label><input id="studentExamName" placeholder="Maqaa guutuu">
+<button onclick="startExam()">🚀 Qormaata Jalqabi</button>
+<button class="gray" onclick="show('home')">← Deebi'i</button>
+</div>
+<div id="examArea"></div>
+</section>
+
+</main>
+<script>
+const topics={
+"Salaata":["Hiika Salaataa","Shuruuta Salaataa","Arkaana Salaataa","Waajibaata Salaataa","Sunnata Salaataa","Waan Salaata Balleessu","Sujuuda Sahw","Salaata Jamaa'aa","Salaata Imalaa","Jumu'aa","Witr","Janaazaa","Iida"],
+"Aqiidaa":["Hiika Aqiidaa","Arkaana Iimaanaa","Tawhiida","Malaayikota","Kitaabota","Ergamtoota","Guyyaa Qiyaamaa","Qadar"],
+"Hadiisa":["Hiika Hadiisaa","Sahiih fi Da'eef","Arba'iin Nawawiyyah","Akhlaaqa"],
+"Qur'aana":["Hiika Qur'aanaa","Tafsiira","Tajwiida","Hifzii"],
+"Kan biraa":["Qabiyyee Haaraa"]
+};
+let qs=JSON.parse(localStorage.getItem("qo_questions")||"[]");
+let exams=JSON.parse(localStorage.getItem("qo_exams")||"[]");
+let students=JSON.parse(localStorage.getItem("qo_students")||"[]");
+let results=JSON.parse(localStorage.getItem("qo_results")||"[]");
+let editId=null,currentExam=null;
+
+function save(){localStorage.setItem("qo_questions",JSON.stringify(qs));localStorage.setItem("qo_exams",JSON.stringify(exams));localStorage.setItem("qo_students",JSON.stringify(students));localStorage.setItem("qo_results",JSON.stringify(results))}
+function show(id){document.querySelectorAll("main>section,.card").forEach(x=>{if(["teacher","student"].includes(x.id))x.classList.add("hidden")});document.getElementById(id).classList.remove("hidden");if(id==="teacher")teacherPage("questions")}
+function fillSubjects(){
+ ["subject","examSubject"].forEach(id=>{let s=document.getElementById(id);s.innerHTML=Object.keys(topics).map(x=>`<option>${x}</option>`).join("");});
+ loadTopics();loadExamTopics();renderQuestions();renderExams();renderStudents();renderResults();
+}
+function loadTopics(){let s=document.getElementById("subject").value;document.getElementById("topic").innerHTML=topics[s].map(x=>`<option>${x}</option>`).join("");}
+function loadExamTopics(){let s=document.getElementById("examSubject").value;document.getElementById("examTopic").innerHTML='<option value="">Qabiyyee hunda</option>'+topics[s].map(x=>`<option>${x}</option>`).join("")}
+document.getElementById("examSubject").addEventListener("change",loadExamTopics);
+function teacherPage(id){document.getElementById("teacher").classList.remove("hidden");["questions","exams","students","results"].forEach(x=>document.getElementById(x).classList.add("hidden"));document.getElementById(id).classList.remove("hidden");if(id==="questions")renderQuestions();if(id==="exams")renderExams();if(id==="students")renderStudents();if(id==="results")renderResults()}
+function saveQuestion(){
+ let q={id:editId||Date.now(),subject:subject.value,topic:topic.value,text:question.value.trim(),A:a.value.trim(),B:b.value.trim(),C:c.value.trim(),D:d.value.trim(),correct:correct.value};
+ if(!q.text||!q.A||!q.B||!q.C||!q.D){alert("Mee bakka hundaa guuti.");return}
+ let i=qs.findIndex(x=>x.id===q.id);if(i>=0)qs[i]=q;else qs.push(q);editId=null;save();clearForm();renderQuestions();alert("Gaaffiin olkaa'ameera.");
+}
+function clearForm(){editId=null;["question","a","b","c","d"].forEach(x=>document.getElementById(x).value="")}
+function renderQuestions(){let box=document.getElementById("questionList");if(!box)return;box.innerHTML=`<h3>Gaaffiiwwan (${qs.length})</h3>`+qs.map((q,i)=>`<div class="q"><b>${i+1}. ${q.text}</b><div class="small">${q.subject} → ${q.topic}</div><p>A. ${q.A}<br>B. ${q.B}<br>C. ${q.C}<br>D. ${q.D}</p><button onclick="editQuestion(${q.id})">Sirreessi</button><button class="red" onclick="deleteQuestion(${q.id})">Haqi</button></div>`).join("")}
+function editQuestion(id){let q=qs.find(x=>x.id===id);editId=id;subject.value=q.subject;loadTopics();topic.value=q.topic;question.value=q.text;a.value=q.A;b.value=q.B;c.value=q.C;d.value=q.D;correct.value=q.correct;window.scrollTo(0,0)}
+function deleteQuestion(id){if(confirm("Gaaffii kana haquu?")){qs=qs.filter(x=>x.id!==id);save();renderQuestions()}}
+function createExam(){
+ let name=examName.value.trim(),sub=examSubject.value,top=examTopic.value,count=+examCount.value;
+ let pool=qs.filter(q=>q.subject===sub&&(!top||q.topic===top));
+ if(!name||!pool.length){alert("Maqaa galchi; akkasumas gaaffiiwwan mata-duree kanaa qabaadhu.");return}
+ pool.sort(()=>Math.random()-.5);pool=pool.slice(0,count);
+ let code=Math.random().toString(36).slice(2,8).toUpperCase();
+ exams.push({id:Date.now(),name,subject:sub,topic:top,count:pool.length,questionIds:pool.map(q=>q.id),code});
+ save();examName.value="";renderExams();alert("Qormaanni uumameera. Koodiin: "+code);
+}
+function renderExams(){let box=document.getElementById("examList");if(!box)return;box.innerHTML="<h3>Qormaatawwan</h3>"+exams.map(e=>`<div class="q"><b>${e.name}</b><br>${e.subject} ${e.topic?"→ "+e.topic:""}<br>Gaaffii: ${e.count}<br><b>Koodii: ${e.code}</b><br><button onclick="copyCode('${e.code}')">Koodii Koppii</button><button class="red" onclick="deleteExam(${e.id})">Haqi</button></div>`).join("")}
+function copyCode(c){navigator.clipboard?.writeText(c);alert("Koodiin: "+c)}
+function deleteExam(id){if(confirm("Qormaata kana haquu?")){exams=exams.filter(e=>e.id!==id);save();renderExams()}}
+function addStudent(){let n=studentName.value.trim();if(!n)return;students.push({id:Date.now(),name:n});studentName.value="";save();renderStudents()}
+function renderStudents(){let box=document.getElementById("studentList");if(!box)return;box.innerHTML=students.map(s=>`<div class="q">${s.name}<button class="red" onclick="deleteStudent(${s.id})">Haqi</button></div>`).join("")}
+function deleteStudent(id){students=students.filter(s=>s.id!==id);save();renderStudents()}
+function startExam(){
+ let code=examCode.value.trim().toUpperCase(),name=studentExamName.value.trim();
+ currentExam=exams.find(e=>e.code===code);
+ if(!currentExam||!name){alert("Koodii sirrii fi maqaa kee galchi.");return}
+ let arr=currentExam.questionIds.map(id=>qs.find(q=>q.id===id)).filter(Boolean);
+ document.getElementById("examArea").innerHTML=`<div class="card"><h2>${currentExam.name}</h2><p>Barataa: <b>${name}</b></p>${arr.map((q,i)=>`<div class="q"><b>${i+1}. ${q.text}</b>${["A","B","C","D"].map(o=>`<label class="option"><input type="radio" name="q${i}" value="${o}"> ${o}. ${q[o]}</label>`).join("")}</div>`).join("")}<button onclick="submitExam()">📤 Deebii Ergi</button></div>`;
+ window.scrollTo(0,document.body.scrollHeight);
+}
+function submitExam(){
+ let arr=currentExam.questionIds.map(id=>qs.find(q=>q.id===id)).filter(Boolean),name=studentExamName.value.trim(),score=0;
+ arr.forEach((q,i)=>{let x=document.querySelector(`input[name="q${i}"]:checked`);if(x&&x.value===q.correct)score++});
+ let r={id:Date.now(),exam:currentExam.name,code:currentExam.code,student:name,score,total:arr.length,date:new Date().toLocaleString()};
+ results.push(r);save();
+ document.getElementById("examArea").innerHTML=`<div class="card"><div class="score">🎉 ${score} / ${arr.length}</div><p style="text-align:center">Qormaata xumurtee jirta.</p></div>`;
+}
+function renderResults(){let box=document.getElementById("resultList");if(!box)return;box.innerHTML=results.length?results.slice().reverse().map(r=>`<div class="q"><b>${r.student}</b> — ${r.exam}<br>Bu'aa: <b>${r.score}/${r.total}</b><br><span class="small">${r.date}</span></div>`).join(""):"Bu'aan hin jiru."}
+fillSubjects();
+</script>
+</body>
+</html>
